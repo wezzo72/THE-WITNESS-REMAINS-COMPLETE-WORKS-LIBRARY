@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>The Witness Remains — Complete Works Library</title>
+<style>
+body{margin:0;background:#f4efe4;color:#1a1612;font-family:Verdana,Geneva,sans-serif}
+header{background:#1c1916;color:#f6f1e8;padding:1rem 1rem 1.2rem}
+h1{font-size:1.4rem;line-height:1.25;margin:.2rem 0}
+main{max-width:52rem;margin:0 auto;padding:1rem}
+input,select{font:inherit;font-size:1rem;padding:.6rem;width:100%;box-sizing:border-box;margin:.35rem 0}
+article{border-top:1px solid #d9d0c2;padding:.75rem 0}
+a{color:#7a241c}
+.meta{font-size:.9rem;color:#3f3428}
+</style>
+</head>
+<body>
+<header>
+<p>The Witness Remains · Finding aid · Not a court · Not a verdict</p>
+<h1>COMPLETE WORKS LIBRARY</h1>
+<p>These are the original files. A verified copy matches its source byte for byte. The source repositories were not changed.</p>
+</header>
+<main>
+<p><a href="00_MASTER_INDEX/COMPLETE_WORKS_REGISTER.csv">Download the full register (CSV)</a></p>
+<input id="q" placeholder="Search by title or work ID" aria-label="Search"/>
+<select id="cat" aria-label="Category"><option value="">Every category</option></select>
+<select id="st" aria-label="Status">
+<option value="">Every status</option>
+<option value="verified">Verified copy</option>
+<option value="not-copied">Not copied into this library</option>
+<option value="lfs">Git LFS pointer only</option>
+</select>
+<p id="count"></p>
+<div id="list"></div>
+</main>
+<script>
+function esc(s){return s.replace(/[&<>]/g, function(m){return {"&":"&","<":"<",">":">"}[m];});}
+fetch("00_MASTER_INDEX/search.json").then(function(r){return r.json();}).then(function(DATA){
+  var cat=document.getElementById("cat");
+  var names={};
+  DATA.forEach(function(d){names[d.category]=1;});
+  Object.keys(names).sort().forEach(function(c){
+    var o=document.createElement("option");
+    o.value=c; o.textContent=c; cat.appendChild(o);
+  });
+  function show(){
+    var q=document.getElementById("q").value.toLowerCase();
+    var c=cat.value;
+    var s=document.getElementById("st").value;
+    var hits=DATA.filter(function(d){
+      return (!q || (d.title+" "+d.id).toLowerCase().indexOf(q)>=0) && (!c || d.category===c) && (!s || d.status===s);
+    });
+    document.getElementById("count").textContent=hits.length+" works";
+    var html="";
+    hits.slice(0,150).forEach(function(d){
+      html += "<article><strong>"+esc(d.id)+"</strong> "+esc(d.title)
+        +"<p class=\"meta\">"+esc(d.category)+" · "+esc(d.format||"")+" · "+esc(d.status)+" · "+esc(d.repo)+"</p>"
+        +"<p><a href=\""+esc(d.source)+"\">Original file on GitHub</a></p></article>";
+    });
+    if(hits.length>150) html += "<p>The first 150 are shown. Narrow the search to see the rest.</p>";
+    document.getElementById("list").innerHTML=html;
+  }
+  document.getElementById("q").addEventListener("input", show);
+  cat.addEventListener("change", show);
+  document.getElementById("st").addEventListener("change", show);
+  show();
+});
+</script>
+</body>
+</html>
