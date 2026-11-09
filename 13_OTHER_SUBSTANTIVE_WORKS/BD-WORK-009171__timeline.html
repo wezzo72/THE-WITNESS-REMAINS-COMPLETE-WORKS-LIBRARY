@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Timeline — Barran Dodger Archive</title>
+  <meta name="description" content="Searchable chronological timeline from filename-dated catalogue entries. FILENAME DATE ONLY. Not a complete 35-year chronology.">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .filters {
+      display: grid;
+      gap: 0.65rem;
+      margin: 1rem 0 1.5rem;
+      max-width: 42rem;
+    }
+    @media (min-width: 640px) {
+      .filters { grid-template-columns: 1fr 1fr; }
+    }
+    .filters label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.2rem; }
+    .filters select, .filters input {
+      width: 100%; font: inherit; padding: 0.4rem 0.5rem;
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    }
+    .tl-item {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 0.75rem 0.9rem;
+      margin-bottom: 0.55rem;
+    }
+    .tl-date { font-family: ui-monospace, monospace; font-size: 0.9rem; }
+    .tl-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.25rem; }
+    .count { font-size: 0.9rem; color: var(--muted); margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand"><a href="index.html">Barran Dodger Archive</a></div>
+  <div class="sub">Dr Richard William McLean · artist · author · researcher · advocate</div>
+  <nav>
+    <a href="index.html">Museum</a>
+    <a href="evidence/index.html">Evidence</a>
+    <a href="ledger.html">Ledger</a>
+    <a href="evidence-graph.html">Graph</a>
+    <a href="timeline.html">Timeline</a>
+    <a href="official.html">Official</a>
+    <a href="methodology.html">Method</a>
+  </nav>
+</header>
+<main>
+  <h1>Timeline</h1>
+  <p class="lede">Searchable chronological catalogue. Dates come from filenames or prior listing on this site. A filename date is not a verified event date.</p>
+
+  <div class="caution">
+    <strong>FILENAME DATE ONLY.</strong> This is not a complete 35-year chronology.
+    Rows are catalogue entries already published on this presentation site. Inclusion is not a finding that any allegation is true.
+  </div>
+
+  <div class="filters" id="filters">
+    <div>
+      <label for="f-year">Year</label>
+      <select id="f-year"><option value="">All years</option></select>
+    </div>
+    <div>
+      <label for="f-decade">Decade</label>
+      <select id="f-decade"><option value="">All decades</option></select>
+    </div>
+    <div>
+      <label for="f-agency">Agency</label>
+      <select id="f-agency"><option value="">All agencies</option></select>
+    </div>
+    <div>
+      <label for="f-type">Event type</label>
+      <select id="f-type"><option value="">All types</option></select>
+    </div>
+    <div>
+      <label for="f-legal">Legal issue</label>
+      <select id="f-legal"><option value="">All</option></select>
+    </div>
+    <div>
+      <label for="f-cat">Evidence category</label>
+      <select id="f-cat"><option value="">All categories</option></select>
+    </div>
+    <div style="grid-column: 1 / -1;">
+      <label for="f-q">Search label / text</label>
+      <input type="search" id="f-q" placeholder="Filter by words in the label…" autocomplete="off">
+    </div>
+  </div>
+
+  <p class="count" id="count">Loading…</p>
+  <div id="list"></div>
+
+  <p class="meta">
+    Machine data: <a href="data/timeline.json">timeline.json</a> ·
+    <a href="data/events.json">events.json</a> ·
+    <a href="evidence-graph.html">Evidence graph</a> ·
+    <a href="ledger.html">Ledger</a>
+  </p>
+  <p class="meta">Person filter is fixed to the archive subject (PER-0001) for all current rows. Author emails from 2026 that are AUTHOR&rsquo;S ACCOUNT only are not listed as official timeline findings.</p>
+</main>
+<footer>
+  © Dr Richard William McLean / Barran Dodger<br>
+  <a href="methodology.html">Method</a> · <a href="master-command.html">Master command</a> · <a href="spec/BUILD_STATUS.md">Build status</a>
+</footer>
+<script>
+(async function () {
+  const res = await fetch('data/timeline.json');
+  const data = await res.json();
+  const entries = (data.entries || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  function uniq(arr) {
+    return [...new Set(arr.filter(Boolean))].sort();
+  }
+
+  const years = uniq(entries.map(e => String(e.year)));
+  const decades = uniq(entries.map(e => e.decade));
+  const agencies = uniq(entries.flatMap(e => e.agency || []));
+  const types = uniq(entries.map(e => e.event_type));
+  const legals = uniq(entries.flatMap(e => e.legal_issue || []));
+  const cats = uniq(entries.map(e => e.evidence_category));
+
+  function fill(sel, values) {
+    const el = document.getElementById(sel);
+    values.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      el.appendChild(o);
+    });
+  }
+  fill('f-year', years);
+  fill('f-decade', decades);
+  fill('f-agency', agencies);
+  fill('f-type', types);
+  fill('f-legal', legals);
+  fill('f-cat', cats);
+
+  const list = document.getElementById('list');
+  const count = document.getElementById('count');
+
+  function render() {
+    const y = document.getElementById('f-year').value;
+    const d = document.getElementById('f-decade').value;
+    const a = document.getElementById('f-agency').value;
+    const t = document.getElementById('f-type').value;
+    const l = document.getElementById('f-legal').value;
+    const c = document.getElementById('f-cat').value;
+    const q = (document.getElementById('f-q').value || '').toLowerCase().trim();
+
+    const filtered = entries.filter(e => {
+      if (y && String(e.year) !== y) return false;
+      if (d && e.decade !== d) return false;
+      if (a && !(e.agency || []).includes(a)) return false;
+      if (t && e.event_type !== t) return false;
+      if (l && !(e.legal_issue || []).includes(l)) return false;
+      if (c && e.evidence_category !== c) return false;
+      if (q && !(e.label || '').toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    count.textContent = filtered.length + ' of ' + entries.length + ' catalogue entries';
+    if (!filtered.length) {
+      list.innerHTML = '<p class="meta">No entries match these filters.</p>';
+      return;
+    }
+    list.innerHTML = filtered.map(e => {
+      const agencies = (e.agency || []).join(', ');
+      const legal = (e.legal_issue || []).length ? (e.legal_issue || []).join(', ') : '—';
+      const link = e.document_link
+        ? '<a href="' + e.document_link + '" rel="noopener">Open underlying path / file</a>'
+        : '<span class="meta">No direct file link on this row</span>';
+      const evt = e.evt_id ? ' · <span class="tl-date">' + e.evt_id + '</span>' : '';
+      return (
+        '<article class="tl-item" data-id="' + e.id + '">' +
+          '<div><span class="tl-date">' + e.date + '</span> · <strong>' + e.id + '</strong>' + evt + '</div>' +
+          '<div>' + (e.label || '') + '</div>' +
+          '<div class="tl-meta">Agency: ' + agencies + ' · Type: ' + (e.event_type || '') + ' · Legal: ' + legal + '</div>' +
+          '<div class="tl-meta">' + (e.evidence_category || '') + ' · Status: ' + (e.status || '') + '</div>' +
+          '<div class="tl-meta">' + link + '</div>' +
+        '</article>'
+      );
+    }).join('');
+  }
+
+  ['f-year','f-decade','f-agency','f-type','f-legal','f-cat','f-q'].forEach(id => {
+    document.getElementById(id).addEventListener('input', render);
+    document.getElementById(id).addEventListener('change', render);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

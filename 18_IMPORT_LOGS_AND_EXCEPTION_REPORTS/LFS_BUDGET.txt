@@ -1,0 +1,4 @@
+37 files remain Git LFS pointers. GitHub refused the file bytes with HTTP 403:
+"This repository exceeded its LFS budget."
+The pointer files identify the SHA-256 Git LFS object, but the PDF bytes cannot be downloaded until the GitHub LFS budget is increased.
+The source repositories were not changed.

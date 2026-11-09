@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search — Barran Dodger Archive</title>
+  <meta name="description" content="Phase 21 unified title and metadata search across document, media, timeline and publication catalogues. Not a full-text PDF engine.">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .filters { display: grid; gap: 0.65rem; margin: 1rem 0 1rem; max-width: 42rem; }
+    @media (min-width: 640px) { .filters { grid-template-columns: 1fr 1fr; } }
+    .filters label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.2rem; }
+    .filters select, .filters input {
+      width: 100%; font: inherit; padding: 0.4rem 0.5rem;
+      border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    }
+    .hit {
+      border: 1px solid var(--line); background: var(--panel);
+      padding: 0.7rem 0.9rem; margin-bottom: 0.5rem;
+    }
+    .hit .tag {
+      display: inline-block; font-size: 0.72rem; border: 1px solid var(--line);
+      padding: 0.1rem 0.4rem; margin-right: 0.25rem; text-transform: uppercase;
+    }
+    .hit .meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem; }
+    .count { font-size: 0.9rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand"><a href="index.html">Barran Dodger Archive</a></div>
+  <div class="sub">Dr Richard William McLean · artist · author · researcher · advocate</div>
+  <nav>
+    <a href="index.html">Museum</a>
+    <a href="evidence/index.html">Evidence</a>
+    <a href="documents.html">Documents</a>
+    <a href="media.html">Media</a>
+    <a href="timeline.html">Timeline</a>
+    <a href="search.html">Search</a>
+    <a href="verification.html">Verification</a>
+    <a href="methodology.html">Method</a>
+  </nav>
+</header>
+<main>
+  <h1>Search</h1>
+  <p class="lede">Phase 21 unified search over <strong>titles and metadata</strong> in the live catalogues on this site. It does <strong>not</strong> read the text inside every PDF.</p>
+
+  <div class="caution">
+    Results show the evidence-status label from the catalogue row. Status is not a court finding.
+    For the full Backup documents folder, use GitHub code search.
+  </div>
+
+  <div class="filters">
+    <div style="grid-column: 1 / -1;">
+      <label for="q">Find a title, agency, path or ID</label>
+      <input id="q" type="search" autocomplete="off" placeholder="e.g. NDIS, Federal Court, DOC-0001, gospel…">
+    </div>
+    <div>
+      <label for="f-kind">Catalogue</label>
+      <select id="f-kind">
+        <option value="">All catalogues</option>
+        <option value="document">Documents</option>
+        <option value="media">Media</option>
+        <option value="timeline">Timeline</option>
+        <option value="publication">Publications</option>
+      </select>
+    </div>
+    <div style="align-self: end;">
+      <button class="btn" type="button" id="run">Search catalogues</button>
+      <button class="btn" type="button" id="gh">Search on GitHub Backup</button>
+    </div>
+  </div>
+
+  <p class="count" id="status">Loading catalogues…</p>
+  <div id="out"></div>
+
+  <h2>Also open</h2>
+  <p>
+    <a class="btn" href="documents.html">Document database</a>
+    <a class="btn" href="media.html">Media archive</a>
+    <a class="btn" href="timeline.html">Timeline</a>
+    <a class="btn" href="downloads.html">Downloads</a>
+    <a class="btn" href="verification.html">Verification</a>
+    <a class="btn" href="https://github.com/wezzo72/Backup/tree/main/client/public/documents">Backup documents folder</a>
+  </p>
+
+  <p class="meta">Machine notes: <a href="data/search-notes.json">search-notes.json</a></p>
+</main>
+<footer>
+  © Dr Richard William McLean / Barran Dodger<br>
+  <a href="methodology.html">Method</a> · <a href="master-command.html">Master command</a> · <a href="spec/BUILD_STATUS.md">Build status</a>
+</footer>
+<script>
+(async function () {
+  const status = document.getElementById('status');
+  const out = document.getElementById('out');
+  const index = [];
+
+  function push(kind, id, title, statusLabel, href, extra) {
+    index.push({
+      kind: kind,
+      id: id || '',
+      title: title || '',
+      status: statusLabel || '',
+      href: href || '#',
+      extra: extra || '',
+      hay: ((id || '') + ' ' + (title || '') + ' ' + (statusLabel || '') + ' ' + (extra || '')).toLowerCase()
+    });
+  }
+
+  try {
+    const [docs, media, timeline, pubs] = await Promise.all([
+      fetch('data/documents.json').then(r => r.json()),
+      fetch('data/media.json').then(r => r.json()),
+      fetch('data/timeline.json').then(r => r.json()),
+      fetch('data/publications.json').then(r => r.json())
+    ]);
+
+    (docs.documents || []).forEach(d => {
+      const path = d.original_path || '';
+      const href = path
+        ? 'https://github.com/wezzo72/Backup/raw/main/' + encodeURI(path)
+        : 'documents.html';
+      push(
+        'document',
+        d.id,
+        d.title,
+        d.evidence_classification || d.status,
+        href,
+        [d.category, path, (d.agency || []).join(' ')].filter(Boolean).join(' ')
+      );
+    });
+
+    (media.media || []).forEach(m => {
+      const path = m.original_path || '';
+      const href = path
+        ? 'https://github.com/wezzo72/Backup/raw/main/' + encodeURI(path)
+        : 'media.html';
+      push('media', m.id, m.title, m.evidence_classification || m.status, href, [m.type, path].filter(Boolean).join(' '));
+    });
+
+    (timeline.entries || []).forEach(t => {
+      push(
+        'timeline',
+        t.id,
+        t.label,
+        t.evidence_category || t.status,
+        t.document_link || 'timeline.html',
+        [t.date, (t.agency || []).join(' '), t.event_type, (t.legal_issue || []).join(' ')].filter(Boolean).join(' ')
+      );
+    });
+
+    (pubs.publications || []).forEach(p => {
+      const path = p.path || '';
+      const href = path
+        ? 'https://github.com/wezzo72/Backup/raw/main/' + encodeURI(path)
+        : 'writings.html';
+      push('publication', p.id, p.title, p.status || "AUTHOR'S ACCOUNT", href, path);
+    });
+
+    status.textContent = index.length + ' catalogue rows loaded (title/metadata only). Type a query.';
+  } catch (e) {
+    status.textContent = 'Failed to load one or more catalogues: ' + e;
+  }
+
+  function render() {
+    const q = (document.getElementById('q').value || '').toLowerCase().trim();
+    const kind = document.getElementById('f-kind').value;
+    if (!q) {
+      out.innerHTML = '<p class="meta">Enter a search term.</p>';
+      status.textContent = index.length + ' catalogue rows loaded.';
+      return;
+    }
+    const hits = index.filter(row => {
+      if (kind && row.kind !== kind) return false;
+      return row.hay.indexOf(q) !== -1;
+    });
+    status.textContent = hits.length + ' match' + (hits.length === 1 ? '' : 'es') + ' in loaded catalogues.';
+    if (!hits.length) {
+      const gh = 'https://github.com/search?q=' + encodeURIComponent('repo:wezzo72/Backup path:client/public/documents ' + q) + '&type=code';
+      out.innerHTML = '<p>No title/metadata match in the seeded catalogues.</p><p><a class="btn" href="' + gh + '">Search Backup documents on GitHub</a></p>';
+      return;
+    }
+    out.innerHTML = hits.map(row => {
+      return (
+        '<article class="hit">' +
+          '<div><span class="tag">' + row.kind + '</span> <span class="meta">' + row.id + '</span></div>' +
+          '<div><a href="' + row.href + '">' + row.title + '</a></div>' +
+          '<div class="meta">' + row.status + (row.extra ? ' · ' + row.extra : '') + '</div>' +
+        '</article>'
+      );
+    }).join('');
+  }
+
+  document.getElementById('run').addEventListener('click', render);
+  document.getElementById('q').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); render(); }
+  });
+  document.getElementById('f-kind').addEventListener('change', function () {
+    if ((document.getElementById('q').value || '').trim()) render();
+  });
+  document.getElementById('gh').addEventListener('click', function () {
+    const q = (document.getElementById('q').value || '').trim() || 'pdf';
+    const url = 'https://github.com/search?q=' + encodeURIComponent('repo:wezzo72/Backup path:client/public/documents ' + q) + '&type=code';
+    window.location.href = url;
+  });
+})();
+</script>
+</body>
+</html>
