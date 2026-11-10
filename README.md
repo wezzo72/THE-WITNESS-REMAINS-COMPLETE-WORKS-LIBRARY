@@ -13,3 +13,5 @@ Retrieved 10 November 2026 (UTC 9 November 2026, 21:17).
 A matching hash means the copy is byte-for-byte identical to the file that was cloned. It does not mean the file has been placed on a blockchain.
 
 Search: index.html and 00_MASTER_INDEX/search.json
+
+Verification, forensic integrity, intellectual framing, legal positioning, and completeness metrics: [verification.html](verification.html)
